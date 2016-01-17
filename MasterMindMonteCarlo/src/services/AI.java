@@ -1,22 +1,24 @@
 package services;
 
 import static services.CombinationCheck.isCombinationAllowed;
+import static services.GenerateTree.generateFullParseTree;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
 import Objects.Colour;
 import Objects.Game;
-import Objects.Root;
+import Objects.Node;
 import Objects.Slot;
 
 public class AI {
 
 	private Game game;
 	
-	private Root tree;
+	private Node tree;
 
 	private static final Random RANDOM = new Random();
 	
@@ -32,11 +34,11 @@ public class AI {
 		this.game = game;
 	}
 
-	public Root getTree() {
+	public Node getTree() {
 		return tree;
 	}
 
-	public void setTree(Root tree) {
+	public void setTree(Node tree) {
 		this.tree = tree;
 	}
 	
@@ -54,17 +56,16 @@ public class AI {
 	
 	public List<Colour> nextGuess(){
 		//generate tree
-		tree = new Root();
-		
-		for(int i=0; i<500; i++){
-			rollout();
-		}
+		tree = generateFullParseTree();
+		new FullTreeParser(tree, game).parseFullTree();
 		
 		return bestGuess();
 	}
 	
+
+	
 	public void rollout(){
-		Slot nextSlot = chooseNextSlot(tree.getFirstSlot());
+		Slot nextSlot = chooseNextSlot(tree.getNextSlots());
 		rollout(nextSlot, new ArrayList<Colour>());
 		tree.incrementRollouts();
 	}
@@ -79,7 +80,7 @@ public class AI {
 			thisSlot.incrementRollouts();
 			return combinationAllowed;
 		}
-		boolean combinationAllowed = rollout(chooseNextSlot(thisSlot.getNextSlot()), combination);
+		boolean combinationAllowed = rollout(chooseNextSlot(thisSlot.getNextSlots()), combination);
 		if(combinationAllowed){
 			thisSlot.incrementWins();
 		}
@@ -87,7 +88,7 @@ public class AI {
 		return combinationAllowed;
 	}
 	
-	public Slot chooseNextSlot(TreeMap<Colour, Slot> nextSlot){
+	public Slot chooseNextSlot(Map<Colour, Slot> nextSlot){
 		List<Slot> maxMcValueSlots = new ArrayList<>();
 		double maxMcValue = 0;
 		for(Slot slot: nextSlot.values()){
@@ -110,7 +111,7 @@ public class AI {
 	}
 	
 	public List<Colour> bestGuess(){
-		Slot firstSlot = chooseBestSlot(tree.getFirstSlot());
+		Slot firstSlot = chooseBestSlot(tree.getNextSlots());
 		return bestGuess(firstSlot, new ArrayList<Colour>());
 	}
 	
@@ -119,11 +120,11 @@ public class AI {
 		if(thisSlot.getSlotNumber()==4){
 			return combination;
 		}
-		Slot nextSlot = chooseBestSlot(thisSlot.getNextSlot());
+		Slot nextSlot = chooseBestSlot(thisSlot.getNextSlots());
 		return bestGuess(nextSlot, combination);
 	}
 	
-	public Slot chooseBestSlot(TreeMap<Colour, Slot> slots){
+	public Slot chooseBestSlot(Map<Colour, Slot> slots){
 		List<Slot> bestValueSlots = new ArrayList<>();
 		double bestValue = 0;
 		for(Slot slot: slots.values()){
